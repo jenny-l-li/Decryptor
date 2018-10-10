@@ -1,0 +1,82 @@
+1. None of my classes have any known bugs.
+2. High-level description of non-trivial methods and data structures
+
+A) MyHash:
+This class functions as a hash table data structure. It has a pointer (Node** m_buckets) to an array of pointers to Nodes. A Node is a struct as part of a singly-linked list. Each Node has a KeyType, ValueType, and a next pointer. In the case of a collision, each bucket has a linked list of Nodes with that same bucket number.
+
+The constructor points m_buckets to an array with an initial 100 buckets (all set to nullptr). The destructor frees all the memory from what each pointer in the array was pointing too, then frees the memory pointed to by m_buckets itself.
+
+Functions:
+void reset: This function goes through all the buckets in the array; if that bucket was pointing to something, it frees all the memory that that bucket held, then frees the memory pointed to by m_buckets itself. It resets the number of items in the array to 0 and creates a new empty hash table with 100 buckets, just like the constructor does.
+
+void associate (including my private functions addItems and reallocate): If the key passed in as a parameter is already in the hash table, update its value. Otherwise, compute the bucket number for that key and add the a Node with that key/value to the beginning of the linked list for that bucket (done by my addItems private function). If this causes the load factor to exceed the max load factor, call the private reallocate() function. This function doubles the amount of buckets of the current hash table. It creates a temp Node** pointer that points to a new array of pointers to Nodes (with the new amount of buckets), and initializes all the new buckets to nullptr. Then it goes through all the Nodes in the buckets in the old hash table and adds a Node with the old key/value to the linked list for that its correct bucket in the new hash table. It then deletes the old Node and continues for all the items/Nodes in the old hash table until all the Nodes in the old table are deleted. Then it frees the memory pointed to by m_buckets itself, and points m_buckets to the temp variable, and sets temp to nullptr.
+
+const ValueType* find: This function computes the bucket number for that key, then looks through the linked list of Nodes for that bucket, searching if any of the Nodes has the value of key. If key is found, it returns the address of/pointer to the value associated with that key. Otherwise, it returns nullptr.
+
+-------------------------------
+B) Tokenizer:
+This class only has a string m_sep as a private data member. This string holds the same charcaters as the string of separators passed in when Tokenizer is initialized.
+
+The constructor adds every character of the separators parameters into the m_sep variable.
+
+Functions:
+vector<string> tokenize: This function goes through all the characters in input string S. As long as each character isn't a separator, add these characters to a temporary string curr. As soon as a separator is reached, push the curr string onto a vector, reset curr, and continue with the remaining characters of S. When all the characters of S are processed, push back the last word curr stores if there is one, and then return the vector that stores all the token strings.
+
+-------------------------------
+C) WordList:
+This class has a MyHash<string, string> m_wList data member, which is a hash table of all the words loaded in from its loaded text file. It maps from the same string to the same string. It also has a MyHash<string, vector<string>> m_patternList, a hash table that maps the pattern that each of the words in the text file has, to a vector of all words with that pattern.
+
+The constructor doesn't do anything since it doesn't allocate memory, and the MyHash hash tables it has as data members don't require parameters to initialize.
+
+Functions:
+bool loadWordList: This function loads the word file from the parameter. If it's not able to open the file and load the words, it returns false; otherwise it returns true at the end. It discards the old contents of its old data members by calling MyHash's reset() function on m_wList and m_patternList before it begins loading the words from the file. For every line containing a word, it  goes through every character of that word. If it's not a letter or an apostrophe, it skips this line and continues to the next line. Otherwise, it converts all the loaded words to lowercase to standardize their case. It then adds the word into m_wList and gets the pattern of the word using my private getPattern function (explained below). If this pattern already exists in m_patternList, it gets the vector that that pattern maps to, and pushes the current word to this vector. Otherwise, it creates a new vector and pushes the current word to it, then adds this pattern/vector to m_patternList.
+
+string getPattern(string word) const (private member function): This function creates two arrays with size 26, functioning as hash tables where each bucket (0-26)is associated to a character in the alphabet. One is a array of bool that keeps track of which characters are in the word, one is an array of char that keeps track of the pattern symbol for a character that the word has. The "pattern symbols" are capital letters (e.g. "google" 's pattern is "ABBACD"). First, it loops through each character in the input string word, and sets that spot in the bool array to true. Then, it loops through each character in word again. If that character is marked as "true" in the bool array, it records the correct pattern symbol in that character's bucket in the char array. Then, it resets the character's status to "false" in the bool array, since that letter's pattern symbol has already been recorded. Finally, when all the characters have a unique pattern symbol, it loops through each character in word, looks up that character's pattern symbol from the char array, and returns a pattern string with that word's correct pattern. This function runs in O(L), where L is the length of the word.
+
+bool contains: This function first loops through each character in the parameter word and converts it to lowercase, the standard case for my word list. Then it calls m_wordList.find() from the MyHash class to check if that word is in the current word list. It returns whether or not this word was found.
+
+vector<string> findCandidates: First, the pattern of cipherWord is determined using the getPattern function above. Then, get the the vector of words with that pattern using m_patternList.find. If such a vector exists, make a copy of this vector called w. For each  word in vector w w[i], for each character in currTranslation, if this character is a letter but the corresponding w[i] character isn't the same or the cipherWord character isn't a letter, we break out of the loop and return an empty vector. If this character is a ? but the w[i] or cipherWord characters aren't letters, then break out of the loop and return an empty vector. If this character is an apostrophe but the w[i] or cipherWord characters aren't, then break out of the loop and return an empty vector. Otherwise, if there are no bad candidates, then push back all the candidates w[i] to a vector of valid candidate words, and return this vector at the end.
+
+-------------------------------
+D) Translator:
+This class as its private data members has a vector of map<char,char> that functions as a stack, called m_stack. There is a map<char,char> m_currMap that holds the current mappings. There are two char arrays, size 26 for each letter of the alphabet: cipherToPlain and plainToCipher, which store the mapping from the current cipher->plain character mapping and plain->cipher character mapping respectively.
+
+The constructor initializes all 26 spots in the cipherToPlain and plainToCipher arrays to 0.
+
+bool pushMapping: The function first makes checks on the parameters. If the parameters are not the same length, it returns false. For every character in the parameter strings, if this ciphertext character already has a plaintext mapping in cipherToPlain but its value is different from the corresponding parameter plaintext character, it returns false. If this plaintext character already has a ciphertext mapping in plainToCipher but its value is different from the corresponding parameter ciphertext character, it returns false. If all checks are passed, a copy of m_currMap (the current map of mappings) is made and pushed to m_stack. Then, the current map is updated with the parameter strings. For every character in ciphertext, m_currMap adds a mapping from the ciphertext character to the matching plaintext character, and updates ciphertoPlain and plainToCipher appropriately, returning true at the end.
+
+bool popMapping: If both m_currMap and m_stack are empty, return false (nothing to pop). If m_stack is empty but m_currMap isn't (there's still something left to pop), clear m_currMap, which should hold a maximum of 26 characters. Then, call private function updateArrays() (resets cipherToPlain and plainToCipher's entries, then loops through m_currMap's items and updates them with m_currMap's mappings). Otherwise, make m_currMap the last item of m_stack, call updateArrays(), and erase this last item in m_stack (equivalent to popping the stack).
+
+string getTranslation: This function creates a string called plaintext that will store the translation. For each character in the ciphertext argument, if this character isn't a letter, then add this character unchanged to plaintext. Else, if this character is found in cipherToPlain (its value isn't 0), then add the plaintext character corresponding to that character (from cipherToPlain) in the correct case that it appeared in. Else, if this character wasn't found as having a known translation in cipherToPlain, add a ? to plaintext. After all characters in ciphertext are processed, return plaintext.
+
+-------------------------------
+E) Decrypter:
+This class has these private data members: a WordList m_words, a Translator m_trans, and a Tokenizer m_token.
+
+The constructor initializes m_token's separators to be " 1234567890,;:.!()[]{}-"#$%^&".
+
+bool load: This calls m_words' loadWordList function and returns whatever it returns.
+
+vector<string> crack: Calls private member function crackHelper (described below). It converts its ciphertext parameter to an untranslated string with the helper of a private function (converts all letters to ? characters). It passes the original ciphertext string, the untranslated string, and an empty vector "result" into cipherHelper. It returns the result vector.
+
+void DecrypterImpl::crackHelper(const string& ciphertext, string& partial, vector<string>& deciphered) (private member function): This function follows the same algorithm from the beginning of the spec. Below are the details of how I implemented each step:
+
+Step 1: Tokenize parameter ciphertext, and tokenize parameter partial (stores the partial translation of ciphertext. In the beginning, this translation is all '?'). The parameter 'deciphered' will hold all the possible translations by the end.
+
+Step 2: To pick the word with most untranslated characters, go through all the words in ciphertext (already tokenized), then for each character in the words, count the number of '?' or untranslated characters. Keep track of which word has the max amount of '?' and set a string cipherWord equal to that word.
+
+Step 3: Translate chosen word using m_trans.getTranslation
+
+Step 4 and 5: Use m_words.findCandidates to get a vector of all the candidates that match cipherWord's pattern. If there are no candidates, then pop the current mapping and return (void) from this function and back to the previous recursive call.
+
+Step 6: Update the mapping table. For every candidate word:
+Push a map from the chosen cipherWord->this candidate word using m_trans.pushMapping. If it's not a valid push, continue with the next candidate word.
+Decode the ciphertext message thus far with m_trans.getTranslation, and tokenize this translation with m_token.tokenize. 
+Go through all the words in this translation with a full translation (go through every character, and check that there are no '?' in the translation). If at least one of these words isn't in the word list, pop this mapping, break out of the loop, and continue with the next candidate.
+Otherwise, all fully translated words are in the word list. If the amount of fully translated words match the amount of words in the ciphertext, then we've found a match! Pop this mapping and continue checking the next candidate. Else, there are still untranslated words left, so call crackHelper recursively, passing in the original ciphertext, this translation, and the vector 'deciphered' as parameters. 
+When all candidates are processed, pop this current mapping, sort the vectors in 'deciphered' with stl::sort, and return from the function, possibly into the next previous recursive call.
+
+
+3. Big-O
+All of my functions satisfy the Big-O requirements.
+There is a small difference, however, in that my Translator::pushMapping, to my knowledge runs in O(N) time instead of O(N+L) time. However, since N<=L as said in the spec and L is a constant, this is still essentially O(1), which fulfills the spec requirement.
